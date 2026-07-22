@@ -40,6 +40,30 @@ This is conceptually the same check behind Kepler DR25's `koi_fpflag_co`
 Robovetter flag, reimplemented from scratch and applied to any TESS or
 Kepler TPF, not just the original Kepler DR25 catalog.
 
+```mermaid
+flowchart LR
+    A["TPF cadences"] --> B["split by in-/out-of-transit\n(ephemeris)"]
+    B --> C["average each stack"]
+    C --> D["difference image\nout_of_transit - in_transit"]
+    D --> E["flux-weighted centroid\n(the 'X' below)"]
+    F["catalog position\n(propagated to obs. epoch)"] --> G{"offset &gt;= 3sigma?"}
+    E --> G
+    G -->|yes| H["off_target_blend"]
+    G -->|no| I["on_target"]
+```
+
+Real output below — `localizr` run against `tests/fixtures/kic4281068_q1_tpf.fits.gz`,
+a genuine Kepler Q1 target pixel file for **KIC 4281068**, one of this
+project's own verification fixtures precisely because Kepler DR25's own
+Robovetter already flags it `koi_fpflag_co` (a known centroid-offset false
+positive — see `tests/test_live.py`). The bright pixel in the difference
+image (where the transit signal actually lives) sits visibly off from the
+target's own catalog position (cyan star), and `localizr` correctly calls
+it `off_target_blend` at 5.3σ, with no live network access required beyond
+an (optional, gracefully-degrading) Gaia cross-match:
+
+![Real difference-image diagnostic for KIC 4281068 — a known off-target blend](docs/example_off_target_blend.png)
+
 To decide "significantly away," `localizr` estimates the difference-image
 centroid's positional uncertainty empirically, via a cadence-resampling
 bootstrap (rebuild the difference image many times from resampled cadence
