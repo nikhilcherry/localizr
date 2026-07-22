@@ -1,0 +1,45 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "localizr"
+version = "0.1.0"
+description = "Pixel-level transit localization via TESS/Kepler target pixel file difference imaging"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "Nikhil Cherry" }]
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Astronomy",
+]
+dependencies = [
+    "numpy>=1.24",
+    "astropy>=5.3",
+    "matplotlib>=3.7",
+    "lightkurve>=2.4",
+    "astroquery>=0.4.6",
+    "rich>=13.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+[project.scripts]
+localizr = "localizr.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/nikhilcherry/localizr"
+
+[tool.setuptools.packages.find]
+include = ["localizr*"]
+
+[tool.pytest.ini_options]
+markers = [
+    "network: real MAST/Gaia network tests, skipped by default (run with `pytest -m network`)",
+]
+addopts = "-m 'not network'"
