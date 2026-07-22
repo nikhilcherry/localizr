@@ -107,7 +107,10 @@ def compute_verdict(
         pm_note = f"target matched to Gaia DR3 {matched.source_id}, proper motion propagated to obs epoch"
     else:
         target_coord = SkyCoord(ra=catalog_ra * u.deg, dec=catalog_dec * u.deg)
-        pm_note = "no Gaia DR3 counterpart found within 2 arcsec of catalog position; using catalog position as-is (no proper-motion correction)"
+        pm_note = (
+            f"no Gaia DR3 counterpart found within {TARGET_GAIA_MATCH_RADIUS_ARCSEC:g} "
+            "arcsec of catalog position; using catalog position as-is (no proper-motion correction)"
+        )
 
     centroid_coord = SkyCoord(ra=centroid_ra * u.deg, dec=centroid_dec * u.deg)
     offset_arcsec = float(target_coord.separation(centroid_coord).arcsec)

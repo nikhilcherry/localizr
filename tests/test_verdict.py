@@ -7,6 +7,7 @@ import astropy.units as u
 
 from localizr.gaia import GaiaSource
 from localizr.verdict import (
+    TARGET_GAIA_MATCH_RADIUS_ARCSEC,
     VERDICT_INCONCLUSIVE,
     VERDICT_OFF_TARGET_BLEND,
     VERDICT_ON_TARGET,
@@ -68,6 +69,16 @@ def test_propagate_position_nonzero_pm_moves_star():
     orig = SkyCoord(ra=100.0 * u.deg, dec=20.0 * u.deg)
     sep_arcsec = orig.separation(coord).arcsec
     assert 4.5 < sep_arcsec < 5.5  # 500 mas/yr * 10 yr = 5000 mas = 5"
+
+
+def test_compute_verdict_no_gaia_match_note_reflects_match_radius():
+    result = compute_verdict(
+        catalog_ra=100.0, catalog_dec=20.0,
+        centroid_ra=100.0, centroid_dec=20.00002,
+        centroid_uncertainty_col=0.3, centroid_uncertainty_row=0.3,
+        wcs=_simple_wcs(), obstime=Time(2020.0, format="jyear"), gaia_sources=[],
+    )
+    assert f"{TARGET_GAIA_MATCH_RADIUS_ARCSEC:g} arcsec" in result.verdict_reason
 
 
 def test_compute_verdict_on_target_small_offset():
