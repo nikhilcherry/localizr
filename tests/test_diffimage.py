@@ -104,6 +104,25 @@ def test_compute_difference_image_recovers_injected_offset_blend():
     assert abs(result.centroid_col - nx / 2) > 1.0
 
 
+def test_compute_difference_image_is_robust_to_a_single_bad_cadence():
+    """A cosmic-ray-like spike on one out-of-transit cadence, far from the real
+    source, must not drag the centroid off target -- this is what the
+    per-pixel sigma-clipped cadence mean is for."""
+    ny, nx = 9, 9
+    source_row, source_col = 4, 4
+    period, epoch, duration_hours = 3.0, 1.0, 4.0
+
+    flux, time = _synthetic_tpf_cube(400, ny, nx, source_row, source_col, period, epoch, duration_hours)
+    _, out_mask = transit_masks(time, period, epoch, duration_hours)
+    bad_cadence = np.flatnonzero(out_mask)[10]
+    flux[bad_cadence, 0, nx - 1] += 50_000.0  # spike in a far corner pixel
+
+    result = compute_difference_image(flux, time, period, epoch, duration_hours)
+
+    assert result.centroid_col == pytest.approx(source_col, abs=0.3)
+    assert result.centroid_row == pytest.approx(source_row, abs=0.3)
+
+
 def test_compute_difference_image_too_few_cadences_is_an_error():
     ny, nx = 5, 5
     flux = np.full((5, ny, nx), 100.0)

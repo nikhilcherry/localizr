@@ -24,7 +24,10 @@ it isn't the target transiting at all.
 `localizr` tells these apart with difference imaging:
 
 1. Average every in-transit cadence's pixel image, and separately average
-   every out-of-transit cadence's pixel image.
+   every out-of-transit cadence's pixel image, each with per-pixel
+   sigma-clipping across cadences so a single unflagged bad cadence (a
+   cosmic ray hit, a flare, an artifact next to a momentum dump) can't skew
+   either mean.
 2. Subtract: `out_of_transit - in_transit`. What's left is an image of
    *only the pixels that changed brightness in sync with the transit* —
    everything constant (background stars, the target itself if it isn't the

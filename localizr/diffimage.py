@@ -14,6 +14,8 @@ import warnings
 from dataclasses import dataclass
 
 import numpy as np
+from astropy.stats import sigma_clip
+from astropy.utils.exceptions import AstropyUserWarning
 
 MIN_IN_TRANSIT_CADENCES = 3
 MIN_OUT_OF_TRANSIT_CADENCES = 3
@@ -23,6 +25,14 @@ MIN_VALID_PIXELS = 4
 # "out-of-transit", so ingress/egress smearing doesn't contaminate either mean.
 OUT_OF_TRANSIT_BUFFER_FACTOR = 1.0
 BOOTSTRAP_RESAMPLES = 200
+# Per-pixel sigma-clipping threshold applied across cadences before
+# averaging, so a single contaminated cadence (cosmic ray hit, unflagged
+# flare, momentum-dump-adjacent artifact the mission's own quality bitmask
+# missed) can't pull the in-transit/out-of-transit mean and, downstream, the
+# centroid. Below this many cadences, clipping statistics aren't meaningful,
+# so the plain mean is used instead.
+CADENCE_SIGMA_CLIP = 5.0
+MIN_CADENCES_FOR_SIGMA_CLIP = 5
 
 
 class DifferenceImageError(Exception):
@@ -89,6 +99,25 @@ def _nanmean_over_cadences(flux: np.ndarray) -> np.ndarray:
         return np.nanmean(flux, axis=0)
 
 
+def _robust_mean_over_cadences(flux: np.ndarray, sigma: float = CADENCE_SIGMA_CLIP) -> np.ndarray:
+    """Per-pixel iterative sigma-clipped mean across the cadence axis.
+
+    Each pixel is clipped independently (an artifact in one corner of the
+    cutout shouldn't cost the rest of the array any cadences), matching how
+    ``astropy.stats.sigma_clip`` treats an ``axis`` argument. Cadence quality
+    bitmasks already filter out most known-bad cadences before this ever
+    runs; this catches the outliers that slip through unflagged.
+    """
+    if flux.shape[0] < MIN_CADENCES_FOR_SIGMA_CLIP:
+        return _nanmean_over_cadences(flux)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", category=RuntimeWarning)
+        warnings.simplefilter("ignore", category=AstropyUserWarning)
+        clipped = sigma_clip(flux, sigma=sigma, axis=0, masked=True)
+        mean = np.ma.mean(clipped, axis=0)
+        return np.ma.filled(mean, np.nan)
+
+
 def flux_weighted_centroid(image: np.ndarray) -> tuple[float, float]:
     """Flux-weighted (col, row) centroid of a 2-D image.
 
@@ -122,6 +151,9 @@ def compute_difference_image(
     ``flux`` is a (n_cadence, ny, nx) array (units don't matter -- only
     relative flux is used). ``quality`` is an optional per-cadence bitmask;
     nonzero cadences are excluded, matching the pipeline's own quality flags.
+    The in-transit and out-of-transit means are each computed with per-pixel
+    sigma-clipping across cadences (see :func:`_robust_mean_over_cadences`),
+    so a single unflagged bad cadence can't dominate either mean.
     """
     flux = np.asarray(flux, dtype=float)
     time = np.asarray(time, dtype=float)
@@ -158,8 +190,8 @@ def compute_difference_image(
             f"{MIN_OUT_OF_TRANSIT_CADENCES}"
         )
 
-    in_image = _nanmean_over_cadences(flux[in_transit])
-    out_image = _nanmean_over_cadences(flux[out_of_transit])
+    in_image = _robust_mean_over_cadences(flux[in_transit])
+    out_image = _robust_mean_over_cadences(flux[out_of_transit])
     diff_image = out_image - in_image
 
     col_c, row_c = flux_weighted_centroid(diff_image)
