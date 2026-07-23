@@ -38,6 +38,18 @@ def test_transit_masks_rejects_nonpositive_inputs():
         transit_masks(time, period=1.0, epoch=0.0, duration_hours=0.0)
 
 
+def test_transit_masks_rejects_nan_inputs():
+    # `x <= 0` does NOT catch NaN (NaN compares False to both `> 0` and
+    # `<= 0`), so a naive non-positive guard would silently let a NaN
+    # period/duration through to an empty in-transit mask and a much less
+    # precise downstream error, instead of naming the actual problem here.
+    time = np.linspace(0, 10, 100)
+    with pytest.raises(DifferenceImageError, match="period must be positive"):
+        transit_masks(time, period=float("nan"), epoch=0.0, duration_hours=1.0)
+    with pytest.raises(DifferenceImageError, match="duration_hours must be positive"):
+        transit_masks(time, period=1.0, epoch=0.0, duration_hours=float("nan"))
+
+
 def test_flux_weighted_centroid_recovers_known_peak():
     image = np.zeros((10, 10))
     image[3, 7] = 100.0  # row=3, col=7

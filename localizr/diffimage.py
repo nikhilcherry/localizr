@@ -59,9 +59,14 @@ def transit_masks(
     (e.g. all BTJD, or all BKJD) -- whatever units the TPF's own time column
     uses.
     """
-    if duration_hours <= 0:
+    # `not x > 0` (rather than `x <= 0`) also catches NaN, which compares
+    # False to both `> 0` and `<= 0` and would otherwise slip through --
+    # here that meant an empty in-transit mask and a much less precise
+    # downstream error ("only 0 in-transit cadences available") instead of
+    # naming the actual problem.
+    if not duration_hours > 0:
         raise DifferenceImageError(f"duration_hours must be positive, got {duration_hours}")
-    if period <= 0:
+    if not period > 0:
         raise DifferenceImageError(f"period must be positive, got {period}")
 
     half_duration_days = duration_hours / 24.0 / 2.0
