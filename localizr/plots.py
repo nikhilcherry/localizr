@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import matplotlib.pyplot as plt
 
 
@@ -66,6 +68,7 @@ def save_plot(
     fig = make_diagnostic_figure(
         diff_image, wcs, target_ra, target_dec, centroid_ra, centroid_dec, gaia_sources, title
     )
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(path, dpi=150)
     plt.close(fig)
     return str(path)
