@@ -89,7 +89,9 @@ class LocalizationResult:
     def to_json(self, path: str | None = None) -> str:
         text = json.dumps(self.to_dict(), indent=2)
         if path is not None:
-            Path(path).write_text(text)
+            out_path = Path(path)
+            out_path.parent.mkdir(parents=True, exist_ok=True)
+            out_path.write_text(text)
         return text
 
 

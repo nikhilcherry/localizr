@@ -53,6 +53,17 @@ def test_localization_result_to_json_roundtrip(monkeypatch, tmp_path):
     assert out_path.read_text() == text
 
 
+def test_localization_result_to_json_creates_missing_parent_directories(monkeypatch, tmp_path):
+    _no_gaia(monkeypatch)
+    result = localizr.localize(
+        tpf_path=str(FIXTURE), period=PERIOD, epoch_btjd=EPOCH_BKJD, duration_hours=DURATION_HOURS,
+    )
+    out_path = tmp_path / "nested" / "does" / "not" / "exist" / "out.json"
+    text = result.to_json(str(out_path))
+    assert out_path.exists()
+    assert out_path.read_text() == text
+
+
 def test_localization_result_save_plot(monkeypatch, tmp_path):
     _no_gaia(monkeypatch)
     result = localizr.localize(
